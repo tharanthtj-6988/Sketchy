@@ -1,0 +1,30 @@
+{
+  "name": "sketchy",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "check-types": "turbo run check-types"
+  },
+  "devDependencies": {
+    "@prisma/client": "^7.2.0",
+    "@types/node": "^25.0.3",
+    "prettier": "^3.7.4",
+    "prisma": "^7.2.0",
+    "turbo": "^2.7.2",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "bun@1.3.5",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "dependencies": {
+    "dotenv": "^17.2.3"
+  }
+}

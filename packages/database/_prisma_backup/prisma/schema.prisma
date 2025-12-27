@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  name       String?
+  createdAt  DateTime @default(now())
+  // keep auth simple: later Clerk will manage auth; this model can be used
+  // for local users if you choose to seed things
+}
+
+model Board {
+  id         String   @id @default(uuid())
+  title      String   @default("Untitled Board")
+  createdBy  String? 
+  createdAt  DateTime @default(now())
+  shapes     Shape[]  @relation("BoardShapes")
+}
+
+model Shape {
+  id        String   @id @default(uuid())
+  boardId   String
+  type      String
+  data      Json
+  createdAt DateTime @default(now())
+
+  board Board @relation("BoardShapes", fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId])
+}
