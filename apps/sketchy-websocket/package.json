@@ -1,16 +1,3 @@
-{
-  "name": "sketchy-websocket",
-  "version": "0.0.0",
-  "private": true,
-  "scripts": {
-    "dev": "bun run src/index.ts"
-  },
-  "dependencies": {
-    "ws": "^8.18.3"
-  },
-  "devDependencies": {
-    "@types/node": "^25.0.3",
-    "@types/ws": "^8.18.1",
-    "typescript": "^5.9.3"
-  }
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:fcd48b05b362d7b69f4128dd901cf6d251bf3b2f7a53867e460920618f6969cd
+size 287

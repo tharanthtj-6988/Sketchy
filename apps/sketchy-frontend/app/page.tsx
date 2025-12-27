@@ -69,7 +69,7 @@ export default function Page() {
     ctx.lineCap = 'round';
     ctxRef.current = ctx;
 
-    // white paper background initially
+    // white board
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, W, H);
 

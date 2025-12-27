@@ -1,21 +1,3 @@
-{
-  "$schema": "https://turborepo.com/schema.json",
-  "ui": "tui",
-  "tasks": {
-    "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
-    },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
-    "check-types": {
-      "dependsOn": ["^check-types"]
-    },
-    "dev": {
-      "cache": false,
-      "persistent": true
-    }
-  }
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:321e4809e33cb68974a06f0752de9613f4601b96894fc54f152453f7fb7102ca
+size 414

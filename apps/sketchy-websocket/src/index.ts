@@ -1,22 +1,21 @@
-
+// apps/sketchy-websocket/src/index.ts
 import { WebSocketServer } from "ws";
 import fs from "fs";
 import path from "path";
-import http from "http";
 
-const PORT = Number(process.env.WS_PORT ?? 8081);
-
-// simple in-memory boards storage with optional disk persistence
-const boards = new Map<string, any[]>();
+const PORT = Number(process.env.WS_PORT || 8081);
 const DATA_DIR = path.resolve(process.cwd(), "data");
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
+// boardId -> array of raw messages (we store shape messages so new clients can replay)
+const boards = new Map<string, any[]>();
+
 function saveBoardToDisk(boardId: string) {
   try {
-    const data = boards.get(boardId) ?? [];
+    const data = boards.get(boardId) || [];
     fs.writeFileSync(path.join(DATA_DIR, `${boardId}.json`), JSON.stringify(data));
   } catch (err) {
-    console.warn("Failed to save board:", err);
+    console.warn('saveBoardToDisk error', err);
   }
 }
 
@@ -27,81 +26,82 @@ function loadBoardFromDisk(boardId: string) {
       const raw = fs.readFileSync(file, "utf8");
       const parsed = JSON.parse(raw);
       boards.set(boardId, parsed);
-    } else {
-      boards.set(boardId, []);
+      return parsed;
     }
   } catch (err) {
-    boards.set(boardId, []);
+    console.warn('loadBoardFromDisk err', err);
   }
+  boards.set(boardId, []);
+  return [];
 }
 
-// create a minimal http server because some environments need it (ws can attach to it)
-const server = http.createServer();
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ port: PORT }, () => {
+  console.log(`WebSocket server running on ws://localhost:${PORT}`);
+});
 
-wss.on("connection", (ws, req) => {
-  console.log("WS client connected");
-
+wss.on("connection", (ws) => {
   let joinedBoardId: string | null = null;
 
   ws.on("message", (raw) => {
     try {
-      const txt = raw.toString();
-      const msg = JSON.parse(txt);
-      const type = msg.type;
+      const msg = JSON.parse(raw.toString());
+      if (!msg || !msg.type) return;
 
-      // JOIN: send full board state
-      if (type === "join") {
-        const boardId = String(msg.boardId ?? "default");
+      // JOIN - send back init state
+      if (msg.type === "join") {
+        const boardId = msg.boardId || "default";
         joinedBoardId = boardId;
-        loadBoardFromDisk(boardId);
-        const state = boards.get(boardId) ?? [];
-        // send init with full list of previously stored events
+        // load if necessary
+        if (!boards.has(boardId)) loadBoardFromDisk(boardId);
+        const state = boards.get(boardId) || [];
         ws.send(JSON.stringify({ type: "init", state }));
         return;
       }
 
-      // Accept these message types and store them
-      if (type === "shape" || type === "draw" || type === "clear" || type === "delete") {
-        const boardId = String(msg.boardId ?? joinedBoardId ?? "default");
-        const arr = boards.get(boardId) ?? [];
+      // shape messages - store and broadcast
+      if (msg.type === "shape") {
+        const boardId = msg.boardId || joinedBoardId || "default";
+        if (!boards.has(boardId)) loadBoardFromDisk(boardId);
+        const arr = boards.get(boardId) || [];
+        // store this event
         arr.push(msg);
         boards.set(boardId, arr);
 
-        // broadcast to other clients
+        // broadcast to others
         wss.clients.forEach((client) => {
-          if (client !== ws && client.readyState === (ws as any).OPEN) {
-            client.send(txt);
+          if (client !== ws && client.readyState === ws.OPEN) {
+            client.send(JSON.stringify(msg));
           }
         });
+        return;
       }
 
-      // you can extend for presence/cursor events (not storing those)
+      // for any other event types (image add, presence etc.) just rebroadcast & store
+      if (msg.boardId || joinedBoardId) {
+        const boardId = msg.boardId || joinedBoardId || 'default';
+        if (!boards.has(boardId)) loadBoardFromDisk(boardId);
+        boards.get(boardId)!.push(msg);
+        wss.clients.forEach((client) => {
+          if (client !== ws && client.readyState === ws.OPEN) client.send(JSON.stringify(msg));
+        });
+      }
     } catch (err) {
-      console.warn("Invalid WS message:", err);
+      console.error("Invalid message", err);
     }
   });
 
   ws.on("close", () => {
-    if (joinedBoardId) {
-      saveBoardToDisk(joinedBoardId);
-    }
-    console.log("WS client disconnected");
+    if (joinedBoardId) saveBoardToDisk(joinedBoardId);
   });
 
   ws.on("error", (err) => {
-    console.warn("WS error:", err);
+    console.warn("ws error", err);
   });
 });
 
-// Periodic persistence (every 30s)
+// periodic flush to disk
 setInterval(() => {
   for (const boardId of boards.keys()) {
-    saveBoardToDisk(boardId);
+    try { saveBoardToDisk(boardId); } catch {}
   }
 }, 30000);
-
-// start server
-server.listen(PORT, () => {
-  console.log(`WebSocket server running on ws://127.0.0.1:${PORT}`);
-});

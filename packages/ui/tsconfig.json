@@ -1,8 +1,3 @@
-{
-  "extends": "@repo/typescript-config/react-library.json",
-  "compilerOptions": {
-    "outDir": "dist"
-  },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist"]
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:d6ed012dbb7ba814d3ad10969827e9e91ca33dc1c5a292550967032d367dca1a
+size 172
